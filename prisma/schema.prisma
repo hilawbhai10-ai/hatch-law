@@ -1,0 +1,223 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* =======================
+   USER + AUTH
+======================= */
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum SubscriptionTier{
+  Free
+  Premium
+  Elite
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  username  String   @unique
+  password  String?
+  avatarUrl String?
+
+  accountStatus AccountStatus @default(ACTIVE)
+  maximumPods   Int @default(5)
+
+  accounts    Account[]
+  pods        PodMember[]
+  createdPods Pod[]
+  createdPodsCount Int @default(0)
+  subscriptionTier SubscriptionTier @default(Free)
+  sentMessages Message[]
+
+  invites       PodInvite[]
+  joinRequests  PodJoinRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  provider          String
+  providerAccountId String
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+/* =======================
+   PODS
+======================= */
+
+enum PodVisibility {
+  public
+  private
+}
+
+enum PodStatus {
+  active
+  archived
+  expired
+}
+
+enum PodJoinPolicy {
+  open
+  approval
+  invite_only
+}
+
+enum AccountabilityCadence {
+  daily
+  weekly
+  custom
+}
+
+model Pod {
+  uuid        String   @id @default(uuid())
+  name        String
+  description String
+  category    String
+  tags        String[]
+
+  visibility  PodVisibility
+  status      PodStatus @default(active)
+  joinPolicy  PodJoinPolicy @default(open)
+
+  maxMembers  Int
+
+  accountabilityStartDate DateTime
+  accountabilityEndDate   DateTime
+  accountabilityCadence   AccountabilityCadence
+
+  podPfp     String?
+  coverImage String?
+
+  activityScore Int @default(0)
+
+  createdById String
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  members PodMember[]
+  messages Message[]
+  invites       PodInvite[]
+  joinRequests  PodJoinRequest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visibility])
+  @@index([status])
+  @@index([category])
+  @@index([createdById])
+}
+
+enum PodRole {
+  owner
+  admin
+  mod
+  member
+  viewer
+}
+
+model PodMember {
+  id String @id @default(uuid())
+
+  podId  String
+  userId String
+  role   PodRole @default(member)
+
+  joinedAt DateTime @default(now())
+
+  pod  Pod  @relation(fields: [podId], references: [uuid], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([podId, userId])
+  @@index([userId])
+  @@index([podId])
+}
+
+// Messages sent in pods/channels
+model Message {
+  id        String   @id @default(uuid())
+  podId     String
+  channelId String?
+  senderId  String
+  content   String
+
+  createdAt DateTime @default(now())
+
+  pod    Pod  @relation(fields: [podId], references: [uuid], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([podId])
+  @@index([senderId])
+  @@index([podId, channelId, createdAt])
+}
+
+// Pod invite token
+model PodInvite {
+  id          String   @id @default(uuid())
+
+  podId       String
+  pod         Pod      @relation(fields: [podId], references: [uuid], onDelete: Cascade)
+
+  token       String   @unique
+
+  createdBy   String
+  creator     User     @relation(fields: [createdBy], references: [id])
+
+  maxUses     Int?     // null = unlimited
+  usesCount   Int      @default(0)
+
+  expiresAt   DateTime?
+  revoked     Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@index([podId])
+  @@index([token])
+}
+
+
+//PodJoin JoinRequestStatus
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+
+model PodJoinRequest {
+  id        String   @id @default(uuid())
+
+  podId     String
+  pod       Pod      @relation(fields: [podId], references: [uuid], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status    JoinRequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([podId, userId])
+  @@index([podId])
+}

@@ -1,0 +1,40 @@
+{
+  "Questions": {
+    "Question 1": {
+      "Question": "What is your interest?",
+      "Answers": [
+        "Programming",
+        "Designing",
+        "Studying",
+        "Sports"
+      ]
+    },
+    "Question 2": {
+      "Question": "Which field do you want to build a career in?",
+      "Answers": [
+        "Backend Development",
+        "Frontend Development",
+        "Cybersecurity",
+        "Data Science"
+      ]
+    },
+    "Question 3": {
+      "Question": "How much time can you dedicate daily to learning?",
+      "Answers": [
+        "Less than 1 hour",
+        "1-2 hours",
+        "2-4 hours",
+        "More than 4 hours"
+      ]
+    },
+    "Question 4": {
+      "Question": "What best describes your current skill level?",
+      "Answers": [
+        "Beginner",
+        "Intermediate",
+        "Advanced",
+        "Professional"
+      ]
+    }
+  }
+}
